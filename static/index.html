@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Skin Lesion Prototype</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Skin Lesion Classifier</h1>
+    <p class="subtitle">Step 1: test image upload and backend response.</p>
+
+    <form id="upload-form">
+      <input id="file-input" type="file" accept="image/*" required />
+      <button type="submit">Analyze</button>
+    </form>
+
+    <img id="preview" alt="Preview" hidden />
+
+    <div id="status"></div>
+    <pre id="result"></pre>
+  </div>
+
+  <script>
+    const form = document.getElementById("upload-form");
+    const fileInput = document.getElementById("file-input");
+    const preview = document.getElementById("preview");
+    const statusBox = document.getElementById("status");
+    const resultBox = document.getElementById("result");
+
+    fileInput.addEventListener("change", () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      preview.src = URL.createObjectURL(file);
+      preview.hidden = false;
+      statusBox.textContent = "";
+      resultBox.textContent = "";
+    });
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const file = fileInput.files[0];
+      if (!file) {
+        statusBox.textContent = "Choose an image first.";
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      statusBox.textContent = "Uploading and analyzing...";
+      resultBox.textContent = "";
+
+      try {
+        const response = await fetch("/predict", {
+          method: "POST",
+          body: formData
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Upload failed.");
+        }
+
+        statusBox.textContent =
+          `Top class: ${data.top_class} (${Math.round(data.confidence * 100)}%)`;
+
+        resultBox.textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        statusBox.textContent = error.message;
+      }
+    });
+  </script>
+</body>
+</html>
